@@ -1,32 +1,92 @@
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { notes, videoClasses, assignments } from '@/data/mockData';
 import { FileText, Video, ClipboardList, Users, Upload, Eye, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 
 export default function FacultyDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalNotes: 0,
+    totalVideos: 0,
+    totalAssignments: 0,
+    totalStudents: 0,
+    studentEngagement: 0,
+    totalVideoViews: 0,
+    totalNoteViews: 0
+  });
+  const [recentUploads, setRecentUploads] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
-  const recentUploads = [
-    ...notes.map(n => ({ ...n, type: 'note' as const })),
-    ...videoClasses.map(v => ({ ...v, type: 'video' as const })),
-  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('campusconnect_token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Fetch Stats
+        const statsRes = await fetch('/api/stats/dashboard', { headers });
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          setStats({
+            totalNotes: data.totalNotes || 0,
+            totalVideos: data.totalVideos || 0,
+            totalAssignments: data.totalAssignments || 0,
+            totalStudents: data.totalStudents || 0,
+            studentEngagement: data.studentEngagement || 0,
+            totalVideoViews: data.totalVideoViews || 0,
+            totalNoteViews: data.totalNoteViews || 0
+          });
+        }
+
+        // Fetch Notes & Videos for Recent Uploads
+        const [notesRes, videosRes] = await Promise.all([
+          fetch('/api/notes', { headers }),
+          fetch('/api/videos', { headers })
+        ]);
+
+        let uploads: any[] = [];
+        if (notesRes.ok) {
+          const notes = await notesRes.json();
+          uploads = [...uploads, ...notes.map((n: any) => ({ ...n, type: 'note' }))];
+        }
+        if (videosRes.ok) {
+          const videos = await videosRes.json();
+          uploads = [...uploads, ...videos.map((v: any) => ({ ...v, type: 'video' }))];
+        }
+
+        // Sort by date desc and take top 5
+        uploads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setRecentUploads(uploads.slice(0, 5));
+
+        // Fetch Assignments
+        const assignRes = await fetch('/api/assignments', { headers });
+        if (assignRes.ok) {
+          setAssignments(await assignRes.json());
+        }
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <DashboardLayout requiredRole="faculty">
-      <PageHeader 
+      <PageHeader
         title={`Welcome, ${user?.name?.split(' ').slice(1).join(' ') || 'Professor'}!`}
         description="Manage your courses, upload content, and track student progress."
       />
 
       {/* Quick Actions */}
       <div className="mb-8 flex flex-wrap gap-3">
-        <Button asChild variant="hero">
+        <Button asChild variant="default">
           <Link to="/faculty/upload-notes">
             <Upload className="mr-2 h-4 w-4" />
             Upload Notes
@@ -44,31 +104,37 @@ export default function FacultyDashboard() {
             Create Assignment
           </Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link to="/faculty/timetable">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            Manage Timetable
+          </Link>
+        </Button>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Notes Uploaded"
-          value={notes.length}
+          value={stats.totalNotes}
           icon={<FileText className="h-6 w-6" />}
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title="Video Classes"
-          value={videoClasses.length}
+          value={stats.totalVideos}
           icon={<Video className="h-6 w-6" />}
           trend={{ value: 8, isPositive: true }}
         />
         <StatCard
           title="Active Assignments"
-          value={assignments.length}
+          value={stats.totalAssignments}
           icon={<ClipboardList className="h-6 w-6" />}
           variant="primary"
         />
         <StatCard
           title="Students Enrolled"
-          value={156}
+          value={stats.totalStudents}
           icon={<Users className="h-6 w-6" />}
           variant="accent"
         />
@@ -85,25 +151,28 @@ export default function FacultyDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentUploads.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 rounded-lg border p-3">
-                  <div className={`rounded-lg p-2 ${
-                    item.type === 'note' ? 'bg-primary/10' : 'bg-accent/10'
-                  }`}>
-                    {item.type === 'note' ? (
-                      <FileText className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Video className="h-5 w-5 text-accent" />
-                    )}
+              {recentUploads.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No recent uploads</p>
+              ) : (
+                recentUploads.map((item) => (
+                  <div key={item.id} className="flex items-center gap-4 rounded-lg border p-3">
+                    <div className={`rounded-lg p-2 ${item.type === 'note' ? 'bg-primary/10' : 'bg-accent/10'
+                      }`}>
+                      {item.type === 'note' ? (
+                        <FileText className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Video className="h-5 w-5 text-accent" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(item.createdAt), 'MMM d, yyyy')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(item.createdAt, 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -123,10 +192,10 @@ export default function FacultyDashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{assignment.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      12 submissions pending review
+                      No submissions yet
                     </p>
                   </div>
-                  <Button size="sm" variant="subtle" asChild>
+                  <Button size="sm" variant="ghost" asChild>
                     <Link to="/faculty/submissions">Review</Link>
                   </Button>
                 </div>
@@ -149,7 +218,7 @@ export default function FacultyDashboard() {
                 <Users className="h-6 w-6 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">89%</p>
+                <p className="text-2xl font-bold">{stats.studentEngagement}%</p>
                 <p className="text-sm text-muted-foreground">Student Engagement</p>
               </div>
             </CardContent>
@@ -160,7 +229,7 @@ export default function FacultyDashboard() {
                 <Video className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">1.2k</p>
+                <p className="text-2xl font-bold">{stats.totalVideoViews}</p>
                 <p className="text-sm text-muted-foreground">Video Views</p>
               </div>
             </CardContent>
@@ -171,7 +240,7 @@ export default function FacultyDashboard() {
                 <FileText className="h-6 w-6 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold">342</p>
+                <p className="text-2xl font-bold">{stats.totalNoteViews}</p>
                 <p className="text-sm text-muted-foreground">Notes Downloads</p>
               </div>
             </CardContent>

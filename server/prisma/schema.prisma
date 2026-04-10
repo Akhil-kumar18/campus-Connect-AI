@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // "student", "faculty", "admin"
+  avatar    String?
+  
+  // Student Fields
+  usn       String?  @unique
+  course    String?
+
+  // Faculty Fields
+  empId           String?  @unique
+  specialization  String?
+  department      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  courses           Course[]          @relation("FacultyCourses")
+  notes             Note[]
+  videoClasses      VideoClass[]
+  assignments       Assignment[]
+  submissions       Submission[]
+  posts             CommunityPost[]
+  comments          Comment[]
+  managedCourses    Course[]          @relation("CourseManager") // Admin/Faculty manager
+  notifications     Notification[]
+  createdExams      Exam[]
+  timetables        Timetable[]
+  interviewSessions InterviewSession[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  modules     Module[]
+  facultyId   String?
+  faculty     User?     @relation("FacultyCourses", fields: [facultyId], references: [id])
+  managerId   String?
+  manager     User?     @relation("CourseManager", fields: [managerId], references: [id])
+  notes       Note[]
+  videos      VideoClass[]
+  assignments Assignment[]
+  exams       Exam[]
+  timetables  Timetable[]
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  order       Int      @default(0)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  
+  // Relations
+  notes       Note[]
+  videos      VideoClass[]
+  assignments Assignment[]
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  fileUrl     String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  facultyId   String
+  faculty     User     @relation(fields: [facultyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  views       Int      @default(0)
+}
+
+model VideoClass {
+  id          String   @id @default(uuid())
+  title       String
+  videoUrl    String
+  duration    String
+  summaryShort String?
+  summaryMedium String?
+  summaryLong String?
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  facultyId   String
+  faculty     User     @relation(fields: [facultyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  views       Int      @default(0)
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  deadline    DateTime
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  facultyId   String
+  faculty     User     @relation(fields: [facultyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions Submission[]
+}
+
+model Submission {
+  id           String   @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  studentId    String
+  student      User       @relation(fields: [studentId], references: [id])
+  fileUrl      String
+  grade        Float?
+  feedback     String?
+  submittedAt  DateTime @default(now())
+}
+
+model CommunityPost {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  tags      String // Comma separated or JSON string
+  upvotes   Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  comments  Comment[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  upvotes   Int      @default(0)
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  title       String
+  date        DateTime
+  time        String
+  location    String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  isRead    Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Timetable {
+  id        String   @id @default(uuid())
+  title     String   // Class title/subject name
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  day       String   // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+  startTime String   // HH:MM format (e.g., "09:00")
+  endTime   String   // HH:MM format (e.g., "10:00")
+  room      String?  // Room number/location
+  facultyId String
+  faculty   User     @relation(fields: [facultyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InterviewSession {
+  id           String   @id @default(uuid())
+  score        Int
+  feedback     String
+  topic        String?
+  improvements String   // JSON string
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+}

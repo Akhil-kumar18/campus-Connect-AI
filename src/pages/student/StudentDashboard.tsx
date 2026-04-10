@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
@@ -5,20 +6,72 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
-import { assignments, videoClasses, notes } from '@/data/mockData';
 import { FileText, Video, ClipboardList, Brain, Clock, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const [notes, setNotes] = useState([]);
+  const [videoClasses, setVideoClasses] = useState([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalNotes: 0,
+    totalVideos: 0,
+    totalAssignments: 0,
+    pendingAssignments: 0
+  });
 
-  const pendingAssignments = assignments.filter(a => differenceInDays(a.deadline, new Date()) > 0);
-  const urgentAssignments = pendingAssignments.filter(a => differenceInDays(a.deadline, new Date()) <= 3);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('campusconnect_token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Fetch Stats
+        const statsRes = await fetch('/api/stats/dashboard', { headers });
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          setStats({
+            totalNotes: data.totalNotes || 0,
+            totalVideos: data.totalVideos || 0,
+            totalAssignments: data.totalAssignments || 0,
+            pendingAssignments: data.totalAssignments // Placeholder
+          });
+        }
+
+        // Fetch Notes
+        const notesRes = await fetch('/api/notes', { headers });
+        if (notesRes.ok) setNotes(await notesRes.json());
+
+        // Fetch Videos
+        const videosRes = await fetch('/api/videos', { headers });
+        if (videosRes.ok) setVideoClasses(await videosRes.json());
+
+        // Fetch Assignments
+        const assignRes = await fetch('/api/assignments', { headers });
+        if (assignRes.ok) setAssignments(await assignRes.json());
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleDownload = (url: string) => {
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const pendingAssignmentsList = assignments.filter(a => differenceInDays(a.deadline, new Date()) > 0);
+  const urgentAssignments = pendingAssignmentsList.filter(a => differenceInDays(a.deadline, new Date()) <= 3);
+
+  // Calculate real pending count (assignments not submitted)
+  const realPendingCount = assignments.filter(a => !a.submissions || a.submissions.length === 0).length;
 
   return (
     <DashboardLayout requiredRole="student">
-      <PageHeader 
+      <PageHeader
         title={`Welcome back, ${user?.name?.split(' ')[0]}!`}
         description="Here's what's happening with your studies today."
       />
@@ -27,17 +80,17 @@ export default function StudentDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Available Notes"
-          value={notes.length}
+          value={stats.totalNotes}
           icon={<FileText className="h-6 w-6" />}
         />
         <StatCard
           title="Video Classes"
-          value={videoClasses.length}
+          value={stats.totalVideos}
           icon={<Video className="h-6 w-6" />}
         />
         <StatCard
           title="Pending Assignments"
-          value={pendingAssignments.length}
+          value={realPendingCount}
           icon={<ClipboardList className="h-6 w-6" />}
           variant="accent"
         />
@@ -184,7 +237,7 @@ export default function StudentDashboard() {
                     <p className="font-medium text-sm truncate">{note.title}</p>
                     <p className="text-xs text-muted-foreground">{note.facultyName}</p>
                   </div>
-                  <Button size="sm" variant="ghost">Download</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDownload(note.fileUrl)}>Download</Button>
                 </div>
               ))}
             </div>

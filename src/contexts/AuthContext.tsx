@@ -5,7 +5,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
+  register: (name: string, email: string, password: string, role: UserRole, additionalData?: any) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -25,37 +25,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('campusconnect_user', JSON.stringify(foundUser));
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      setUser(data.user);
+      localStorage.setItem('campusconnect_token', data.token);
+      localStorage.setItem('campusconnect_user', JSON.stringify(data.user));
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string, role: UserRole): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role,
-      createdAt: new Date(),
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('campusconnect_user', JSON.stringify(newUser));
-    return true;
+  const register = useCallback(async (name: string, email: string, password: string, role: UserRole, additionalData: any = {}): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role, ...additionalData }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      setUser(data.user);
+      localStorage.setItem('campusconnect_token', data.token);
+      localStorage.setItem('campusconnect_user', JSON.stringify(data.user));
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    }
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
+    localStorage.removeItem('campusconnect_token');
     localStorage.removeItem('campusconnect_user');
   }, []);
 

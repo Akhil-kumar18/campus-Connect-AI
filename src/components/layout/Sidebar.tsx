@@ -16,6 +16,7 @@ import {
   LogOut,
   GraduationCap,
   Sparkles,
+  Calendar,
 } from 'lucide-react';
 
 const studentLinks = [
@@ -23,6 +24,7 @@ const studentLinks = [
   { to: '/student/notes', icon: FileText, label: 'Notes' },
   { to: '/student/videos', icon: Video, label: 'Video Classes' },
   { to: '/student/assignments', icon: ClipboardList, label: 'Assignments' },
+  { to: '/student/timetable', icon: Calendar, label: 'Timetable' },
   { to: '/student/ai-assistant', icon: Sparkles, label: 'AI Study Assistant' },
   { to: '/student/interview', icon: Brain, label: 'Interview Practice' },
   { to: '/community', icon: MessageSquare, label: 'Community Forum' },
@@ -34,6 +36,7 @@ const facultyLinks = [
   { to: '/faculty/upload-videos', icon: Video, label: 'Upload Videos' },
   { to: '/faculty/assignments', icon: ClipboardList, label: 'Assignments' },
   { to: '/faculty/submissions', icon: Eye, label: 'View Submissions' },
+  { to: '/faculty/timetable', icon: Calendar, label: 'Manage Timetable' },
   { to: '/community', icon: MessageSquare, label: 'Community Forum' },
 ];
 
@@ -49,11 +52,11 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const links = user?.role === 'student' 
-    ? studentLinks 
-    : user?.role === 'faculty' 
-    ? facultyLinks 
-    : adminLinks;
+  const links = user?.role === 'student'
+    ? studentLinks
+    : user?.role === 'faculty'
+      ? facultyLinks
+      : adminLinks;
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">

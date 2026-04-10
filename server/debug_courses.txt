@@ -1,0 +1,13 @@
+--- COURSES ---
+ID: d1bea691-e48f-4269-aa00-c889b40379e2 | Code: CS1765385541134 | Name: Computer Science Basics | Modules: 2 | Notes: 3
+ID: 63ac0486-737c-4103-9dc4-22de2e6ac7ed | Code: CS1765391480928 | Name: Test Course | Modules: 1 | Notes: 0
+ID: 4f3207ba-0b48-4924-b3d9-64f4e4d32a06 | Code: CS101 | Name: Web Development | Modules: 0 | Notes: 0
+ID: 9216d32d-e4a5-49e3-9dd6-4f3c28d8ba2d | Code: CS102 | Name: Cyber Security | Modules: 0 | Notes: 0
+ID: 2141424d-2ac5-49c7-a0f3-9f9086d4b969 | Code: CS103 | Name: Data Science | Modules: 0 | Notes: 0
+ID: c14d5d44-20d6-4c8e-8d68-df5a314d1422 | Code: CS104 | Name: Machine Learning | Modules: 0 | Notes: 0
+ID: f684cb41-45f1-40b5-a29a-0e17432b18dd | Code: CS105 | Name: Artificial Intelligence | Modules: 0 | Notes: 0
+
+--- MODULES ---
+ID: 264f7210-323f-47f7-baf2-279e69e23a6b | Course: Test Course | Title: Test Module | Notes: 0
+ID: 36c7557d-2a65-42a9-9c3c-0db16e5bcd1c | Course: Computer Science Basics | Title: module 1 | Notes: 1
+ID: 82cf290e-8ce0-4e1f-8469-a1f38d0bc552 | Course: Computer Science Basics | Title: module2 | Notes: 2

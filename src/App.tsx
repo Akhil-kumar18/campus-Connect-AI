@@ -13,12 +13,14 @@ import VideoClasses from "./pages/student/VideoClasses";
 import StudentAssignments from "./pages/student/Assignments";
 import AIAssistant from "./pages/student/AIAssistant";
 import InterviewPractice from "./pages/student/InterviewPractice";
+import ViewTimetable from "./pages/student/ViewTimetable";
 import Community from "./pages/Community";
 import FacultyDashboard from "./pages/faculty/FacultyDashboard";
 import UploadNotes from "./pages/faculty/UploadNotes";
 import UploadVideos from "./pages/faculty/UploadVideos";
 import FacultyAssignments from "./pages/faculty/FacultyAssignments";
-import ViewSubmissions from "./pages/faculty/ViewSubmissions";
+import FacultySubmissions from "./pages/faculty/FacultySubmissions";
+import ManageTimetable from "./pages/faculty/ManageTimetable";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
 import ManageCourses from "./pages/admin/ManageCourses";
@@ -42,10 +44,10 @@ function AppRoutes() {
     <Routes>
       {/* Auth */}
       <Route path="/auth" element={isAuthenticated ? <Navigate to={`/${user?.role}`} replace /> : <Auth />} />
-      
+
       {/* Root redirect */}
       <Route path="/" element={
-        isAuthenticated 
+        isAuthenticated
           ? <Navigate to={`/${user?.role}`} replace />
           : <Navigate to="/auth" replace />
       } />
@@ -57,13 +59,15 @@ function AppRoutes() {
       <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignments /></ProtectedRoute>} />
       <Route path="/student/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
       <Route path="/student/interview" element={<ProtectedRoute><InterviewPractice /></ProtectedRoute>} />
+      <Route path="/student/timetable" element={<ProtectedRoute><ViewTimetable /></ProtectedRoute>} />
 
       {/* Faculty Routes */}
       <Route path="/faculty" element={<ProtectedRoute><FacultyDashboard /></ProtectedRoute>} />
       <Route path="/faculty/upload-notes" element={<ProtectedRoute><UploadNotes /></ProtectedRoute>} />
       <Route path="/faculty/upload-videos" element={<ProtectedRoute><UploadVideos /></ProtectedRoute>} />
       <Route path="/faculty/assignments" element={<ProtectedRoute><FacultyAssignments /></ProtectedRoute>} />
-      <Route path="/faculty/submissions" element={<ProtectedRoute><ViewSubmissions /></ProtectedRoute>} />
+      <Route path="/faculty/submissions" element={<ProtectedRoute><FacultySubmissions /></ProtectedRoute>} />
+      <Route path="/faculty/timetable" element={<ProtectedRoute><ManageTimetable /></ProtectedRoute>} />
 
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />

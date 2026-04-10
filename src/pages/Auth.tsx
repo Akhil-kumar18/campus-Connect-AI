@@ -15,23 +15,30 @@ export default function Auth() {
   const navigate = useNavigate();
   const { login, register } = useAuth();
   const { toast } = useToast();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [registerData, setRegisterData] = useState({ 
-    name: '', 
-    email: '', 
-    password: '', 
+  const [registerData, setRegisterData] = useState({
+    name: '',
+    email: '',
+    password: '',
     confirmPassword: '',
-    role: 'student' as UserRole 
+    role: 'student' as UserRole,
+    // Student fields
+    usn: '',
+    course: '',
+    // Faculty fields
+    empId: '',
+    specialization: '',
+    department: ''
   });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const success = await login(loginData.email, loginData.password);
-    
+
     if (success) {
       toast({ title: 'Welcome back!', description: 'You have successfully logged in.' });
       // Redirect based on role - for demo, we'll check the email
@@ -39,32 +46,39 @@ export default function Auth() {
       else if (loginData.email.includes('faculty')) navigate('/faculty');
       else navigate('/student');
     } else {
-      toast({ 
-        title: 'Login failed', 
+      toast({
+        title: 'Login failed',
         description: 'Please check your credentials and try again.',
         variant: 'destructive'
       });
     }
-    
+
     setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (registerData.password !== registerData.confirmPassword) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
     }
-    
+
     setIsLoading(true);
+    const additionalData = registerData.role === 'student'
+      ? { usn: registerData.usn, course: registerData.course }
+      : registerData.role === 'faculty'
+        ? { empId: registerData.empId, specialization: registerData.specialization, department: registerData.department }
+        : {};
+
     const success = await register(
-      registerData.name, 
-      registerData.email, 
-      registerData.password, 
-      registerData.role
+      registerData.name,
+      registerData.email,
+      registerData.password,
+      registerData.role,
+      additionalData
     );
-    
+
     if (success) {
       toast({ title: 'Account created!', description: 'Welcome to CampusConnect AI.' });
       if (registerData.role === 'admin') navigate('/admin');
@@ -73,7 +87,7 @@ export default function Auth() {
     } else {
       toast({ title: 'Registration failed', variant: 'destructive' });
     }
-    
+
     setIsLoading(false);
   };
 
@@ -140,7 +154,7 @@ export default function Auth() {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
-                  
+
                   <div className="rounded-lg bg-muted p-3 text-sm">
                     <p className="font-medium text-muted-foreground mb-2">Demo Accounts:</p>
                     <p className="text-xs text-muted-foreground">student@campus.edu (Student)</p>
@@ -197,6 +211,68 @@ export default function Auth() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Dynamic Fields based on Role */}
+                  {registerData.role === 'student' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-usn">USN</Label>
+                        <Input
+                          id="register-usn"
+                          placeholder="1TV20CS001"
+                          value={registerData.usn}
+                          onChange={(e) => setRegisterData({ ...registerData, usn: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-course">Course</Label>
+                        <Input
+                          id="register-course"
+                          placeholder="Computer Science"
+                          value={registerData.course}
+                          onChange={(e) => setRegisterData({ ...registerData, course: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {registerData.role === 'faculty' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-empid">Employee ID</Label>
+                        <Input
+                          id="register-empid"
+                          placeholder="EMP001"
+                          value={registerData.empId}
+                          onChange={(e) => setRegisterData({ ...registerData, empId: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-dept">Department</Label>
+                        <Input
+                          id="register-dept"
+                          placeholder="Computer Science"
+                          value={registerData.department}
+                          onChange={(e) => setRegisterData({ ...registerData, department: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-spec">Specialization</Label>
+                        <Input
+                          id="register-spec"
+                          placeholder="Artificial Intelligence"
+                          value={registerData.specialization}
+                          onChange={(e) => setRegisterData({ ...registerData, specialization: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
                     <Input

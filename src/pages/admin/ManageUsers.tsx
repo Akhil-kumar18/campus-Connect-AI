@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,29 +14,40 @@ import { Users, Plus, Search, Trash2, Mail, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
 
-interface MockUser {
+// Updated interface to match API response (status might not be in API yet, assuming active for now or derived)
+interface ApiUser {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  status: 'active' | 'inactive';
-  createdAt: Date;
+  createdAt: string;
+  // status: 'active' | 'inactive'; // API might not return status yet, assuming all are active
 }
-
-const mockUsers: MockUser[] = [
-  { id: '1', name: 'Alex Chen', email: 'alex@campus.edu', role: 'student', status: 'active', createdAt: new Date() },
-  { id: '2', name: 'Maria Garcia', email: 'maria@campus.edu', role: 'student', status: 'active', createdAt: new Date() },
-  { id: '3', name: 'Dr. Sarah Faculty', email: 'sarah@campus.edu', role: 'faculty', status: 'active', createdAt: new Date() },
-  { id: '4', name: 'Prof. Michael Brown', email: 'michael@campus.edu', role: 'faculty', status: 'active', createdAt: new Date() },
-  { id: '5', name: 'James Wilson', email: 'james@campus.edu', role: 'student', status: 'inactive', createdAt: new Date() },
-];
 
 export default function ManageUsers() {
   const { toast } = useToast();
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<ApiUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialog, setCreateDialog] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'student' as UserRole });
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'student' as UserRole, password: 'password123' });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('campusconnect_token');
+      const res = await fetch('/api/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setUsers(await res.json());
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
   const students = users.filter(u => u.role === 'student');
   const faculty = users.filter(u => u.role === 'faculty');
@@ -44,28 +55,56 @@ export default function ManageUsers() {
   const filteredUsers = (role: UserRole) => {
     return users
       .filter(u => u.role === role)
-      .filter(u => 
+      .filter(u =>
         u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email.toLowerCase().includes(searchQuery.toLowerCase())
       );
   };
 
-  const handleCreate = () => {
-    const user: MockUser = {
-      id: Date.now().toString(),
-      ...newUser,
-      status: 'active',
-      createdAt: new Date(),
-    };
-    setUsers([...users, user]);
-    setCreateDialog(false);
-    setNewUser({ name: '', email: '', role: 'student' });
-    toast({ title: 'User created successfully!' });
+  const handleCreate = async () => {
+    try {
+      const token = localStorage.getItem('campusconnect_token');
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newUser)
+      });
+
+      if (res.ok) {
+        toast({ title: 'User created successfully!' });
+        setCreateDialog(false);
+        setNewUser({ name: '', email: '', role: 'student', password: 'password123' });
+        fetchUsers();
+      } else {
+        const err = await res.json();
+        toast({ title: 'Failed to create user', description: err.message, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error creating user', variant: 'destructive' });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setUsers(users.filter(u => u.id !== id));
-    toast({ title: 'User deleted', variant: 'destructive' });
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    try {
+      const token = localStorage.getItem('campusconnect_token');
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        toast({ title: 'User deleted', variant: 'destructive' });
+        fetchUsers();
+      } else {
+        toast({ title: 'Failed to delete user', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
   };
 
   const UserTable = ({ role }: { role: UserRole }) => (
@@ -92,8 +131,8 @@ export default function ManageUsers() {
               </TableCell>
               <TableCell className="text-muted-foreground">{user.email}</TableCell>
               <TableCell>
-                <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                  {user.status}
+                <Badge variant="default">
+                  Active
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
@@ -110,11 +149,11 @@ export default function ManageUsers() {
 
   return (
     <DashboardLayout requiredRole="admin">
-      <PageHeader 
+      <PageHeader
         title="Manage Users"
         description="Add, edit, or remove students and faculty"
         action={
-          <Button variant="hero" onClick={() => setCreateDialog(true)}>
+          <Button onClick={() => setCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -189,9 +228,17 @@ export default function ManageUsers() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Default Password</Label>
+              <Input
+                type="text"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Role</Label>
-              <Select 
-                value={newUser.role} 
+              <Select
+                value={newUser.role}
                 onValueChange={(v: UserRole) => setNewUser({ ...newUser, role: v })}
               >
                 <SelectTrigger>

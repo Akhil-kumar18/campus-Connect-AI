@@ -1,17 +1,44 @@
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { analytics } from '@/data/mockData';
-import { Users, GraduationCap, BookOpen, FileText, Video, ClipboardList, MessageSquare, TrendingUp } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-const COLORS = ['hsl(239, 84%, 67%)', 'hsl(16, 90%, 60%)', 'hsl(142, 76%, 36%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)'];
+import { Card, CardContent } from '@/components/ui/card';
+import { Users, GraduationCap, BookOpen, FileText, Video, ClipboardList, TrendingUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalFaculty: 0,
+    totalCourses: 0,
+    totalNotes: 0,
+    totalVideos: 0,
+    totalAssignments: 0,
+    activeUsers: 0,
+    submissionRate: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('campusconnect_token');
+        const res = await fetch('/api/stats/dashboard', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Error fetching admin stats:", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <DashboardLayout requiredRole="admin">
-      <PageHeader 
+      <PageHeader
         title="Admin Dashboard"
         description="Platform overview and analytics"
       />
@@ -20,39 +47,37 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Total Students"
-          value={analytics.totalStudents.toLocaleString()}
+          value={stats.totalStudents}
           icon={<Users className="h-6 w-6" />}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title="Total Faculty"
-          value={analytics.totalFaculty}
+          value={stats.totalFaculty}
           icon={<GraduationCap className="h-6 w-6" />}
-          trend={{ value: 5, isPositive: true }}
         />
         <StatCard
           title="Active Courses"
-          value={analytics.totalCourses}
+          value={stats.totalCourses}
           icon={<BookOpen className="h-6 w-6" />}
           variant="primary"
         />
         <StatCard
           title="Active Users"
-          value={analytics.activeUsers}
+          value={stats.activeUsers}
           icon={<TrendingUp className="h-6 w-6" />}
           variant="accent"
         />
       </div>
 
       {/* Content Stats */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="rounded-lg bg-primary/10 p-3">
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{analytics.totalNotes}</p>
+              <p className="text-2xl font-bold">{stats.totalNotes}</p>
               <p className="text-sm text-muted-foreground">Notes Uploaded</p>
             </div>
           </CardContent>
@@ -63,7 +88,7 @@ export default function AdminDashboard() {
               <Video className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{analytics.totalVideos}</p>
+              <p className="text-2xl font-bold">{stats.totalVideos}</p>
               <p className="text-sm text-muted-foreground">Video Classes</p>
             </div>
           </CardContent>
@@ -74,73 +99,30 @@ export default function AdminDashboard() {
               <ClipboardList className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{analytics.totalAssignments}</p>
+              <p className="text-2xl font-bold">{stats.totalAssignments}</p>
               <p className="text-sm text-muted-foreground">Assignments</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="rounded-lg bg-warning/10 p-3">
-              <MessageSquare className="h-6 w-6 text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{analytics.communityPosts}</p>
-              <p className="text-sm text-muted-foreground">Community Posts</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Course Usage Chart */}
+        {/* Submission Rate - Kept as visual example, though data is static from controller currently */}
         <Card>
-          <CardHeader>
-            <CardTitle>Course Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.courseUsage}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="course" 
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Bar dataKey="usage" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submission Rate */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Submission Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
+          <CardContent className="p-6">
+            <h3 className="font-semibold mb-4">Submission Rate</h3>
+            <div className="h-[200px] flex items-center justify-center relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Submitted', value: analytics.submissionRate },
-                      { name: 'Pending', value: 100 - analytics.submissionRate },
+                      { name: 'Submitted', value: stats.submissionRate || 85 },
+                      { name: 'Pending', value: 100 - (stats.submissionRate || 85) },
                     ]}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
-                    outerRadius={100}
+                    outerRadius={80}
                     paddingAngle={5}
                     dataKey="value"
                   >
@@ -151,65 +133,9 @@ export default function AdminDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute text-center">
-                <p className="text-3xl font-bold">{analytics.submissionRate}%</p>
-                <p className="text-sm text-muted-foreground">Submitted</p>
+                <p className="text-2xl font-bold">{stats.submissionRate}%</p>
+                <p className="text-xs text-muted-foreground">Submitted</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Most Active Students */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Most Active Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.mostActiveStudents.map((student, index) => (
-                <div key={student.name} className="flex items-center gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary text-sm font-bold text-primary-foreground">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{student.name}</p>
-                    <div className="mt-1 h-2 w-full rounded-full bg-muted overflow-hidden">
-                      <div 
-                        className="h-full gradient-primary rounded-full"
-                        style={{ width: `${(student.activity / analytics.mostActiveStudents[0].activity) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{student.activity} pts</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Most Active Faculty */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Most Active Faculty</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.mostActiveFaculty.map((faculty, index) => (
-                <div key={faculty.name} className="flex items-center gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-accent text-sm font-bold text-accent-foreground">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{faculty.name}</p>
-                    <div className="mt-1 h-2 w-full rounded-full bg-muted overflow-hidden">
-                      <div 
-                        className="h-full gradient-accent rounded-full"
-                        style={{ width: `${(faculty.uploads / analytics.mostActiveFaculty[0].uploads) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{faculty.uploads} uploads</span>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
