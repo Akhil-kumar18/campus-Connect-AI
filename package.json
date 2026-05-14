@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "npm run dev --prefix server",
-    "build": "vite build",
+    "build": "vite build && npm run build --prefix server",
     "build:dev": "vite build --mode development",
+    "postinstall": "npm install --prefix server",
+    "start": "npm start --prefix server",
     "lint": "eslint .",
     "preview": "vite preview"
   },

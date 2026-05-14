@@ -52,4 +52,13 @@ app.use('/api/chat', chatRoutes);
 
 // Routes will be added here
 
+// Serve frontend static files
+const frontendDistPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendDistPath));
+
+// Catch-all route to serve index.html for SPA routing (must be after all API routes)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
+
 export default app;
